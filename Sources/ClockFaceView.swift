@@ -13,7 +13,7 @@
 //  - NO AUDIO. His instruction was "minus the cryotunes audio". It is right twice over:
 //    it removes every audio-licensing entanglement, and screen savers run inside
 //    legacyScreenSaver's sandbox where playing sound is unwelcome anyway.
-//  - NO SETTINGS, NO WEATHER, NO LOCATION. The tvOS app's ContentView is 774 lines of
+//  - NO WEATHER, NO LOCATION. The tvOS app's ContentView is 774 lines of
 //    chrome — focus handling, pickers, transport controls. A screensaver has no UI, so
 //    almost none of it has a job. WeatherKit specifically is UNPROVEN inside the
 //    screensaver sandbox and is not being assumed to work.
@@ -42,11 +42,13 @@ struct ClockFaceView: View {
     @State private var patterns: [Int: Set<Int>] = [:]
     @State private var colors: [Int: [Color]] = [:]
 
-    /// Change these two to re-theme. There is no settings sheet by design.
-    private let colorScheme: ColorSchemeOption = .matrixColors
-    private let rainSize: GlyphRainSize = .medium
-    private let use24Hour = false
-    private let glow = true
+    /// Read once, at construction. The saver is rebuilt when Options is dismissed,
+    /// so there is nothing to observe at runtime.
+    private let colorScheme = SaverSettings.colorScheme
+    private let rainSize = SaverSettings.rainSize
+    private let showRain = SaverSettings.showRain
+    private let use24Hour = SaverSettings.use24Hour
+    private let glow = SaverSettings.glow
 
     private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -57,7 +59,9 @@ struct ClockFaceView: View {
             ZStack {
                 Color.black
 
-                GlyphRainView(colorScheme: colorScheme, textTargets: [], rainSize: rainSize)
+                if showRain {
+                    GlyphRainView(colorScheme: colorScheme, textTargets: [], rainSize: rainSize)
+                }
 
                 HStack(spacing: 0) {
                     TallyMatrix1x3(value: hoursTens,

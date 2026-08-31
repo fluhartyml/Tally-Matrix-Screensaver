@@ -53,6 +53,6 @@ final class TallyMatrixSaverView: ScreenSaverView {
         // Intentionally empty. See animationTimeInterval above.
     }
 
-    override var hasConfigureSheet: Bool { false }
-    override var configureSheet: NSWindow? { nil }
+    override var hasConfigureSheet: Bool { true }
+    override var configureSheet: NSWindow? { ConfigureSheetController.shared.window }
 }

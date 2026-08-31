@@ -19,6 +19,20 @@ Then **System Settings → Screen Saver → Other → Tally Matrix**.
 If the saver was already selected when you rebuild, quit and reopen System Settings —
 the screensaver engine caches the loaded bundle.
 
+### ⚠️ Multiple displays: assign it on EACH screen
+
+**The screensaver choice is per-display, and it is set on the display you are currently
+on.** Selecting Tally Matrix while System Settings sits on the built-in screen sets it
+for the built-in screen only; the second display keeps whatever it had.
+
+**Make the other display active — move the System Settings window onto it — and choose
+the saver again there.**
+
+Found by Michael, 2026-08-30: *"i just had to make the external display active when
+assigning it a screensaver."* Worth writing down because the symptom is
+indistinguishable from the saver being broken on the second screen, and the obvious
+assumption — that macOS runs one choice everywhere — is wrong.
+
 ## How it reads the time
 
 Each digit is drawn as a **tally**: a 3×3 grid (or 1×3 for the hours-tens place) with as

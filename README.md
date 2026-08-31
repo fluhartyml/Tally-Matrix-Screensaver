@@ -82,3 +82,26 @@ code into shared locations, and a screensaver has to live in `~/Library/Screen S
 Outside the store it is Developer ID signing plus notarization, which is the sanctioned
 path and not a workaround. `build.sh` currently signs **ad-hoc**, which is enough to run
 on the machine that built it.
+
+## ⬜ Known issue — changing the color in Options does not take effect
+
+**Michael, 2026-08-30 21:53:** *"The color isnt changing on the screensaver."*
+**Reported, not yet diagnosed. Do not assume the cause below is right.**
+
+**Prime suspect:** `ClockFaceView` reads every setting **once, at construction**
+(`private let colorScheme = SaverSettings.colorScheme`), and the comment beside it claims
+"the saver is rebuilt when Options is dismissed." **That claim was an assumption and was
+never checked** — if the hosting view is not torn down, the new value is never read.
+
+**Things to rule out, in order, cheapest first:**
+1. **Is the value being written at all?**
+   `defaults read com.nightgard.TallyMatrixScreensaver` after pressing Done.
+2. **Is it being written to the domain the SAVER reads?** The Options sheet runs inside
+   System Settings; the saver runs inside `legacyScreenSaver`. Both go through
+   `ScreenSaverDefaults(forModuleWithName:)` with the same string, so they *should* agree
+   — but "should" is what needs proving here.
+3. **Is the view simply not rebuilt?** If 1 and 2 pass, this is it. Fix is to read the
+   settings in `body` rather than in stored properties, or to observe the defaults.
+
+⚠️ **The `Done` button calls `synchronize()`, so a missing write is unlikely — which
+points at 3.** Still measure rather than skip to it.

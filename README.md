@@ -83,7 +83,29 @@ Outside the store it is Developer ID signing plus notarization, which is the san
 path and not a workaround. `build.sh` currently signs **ad-hoc**, which is enough to run
 on the machine that built it.
 
-## ⬜ Known issue — changing the color in Options does not take effect
+## ⬜ Known issue — not offered on the external display (suspected macOS 27.0.1)
+
+**Michael, 2026-10-01:** on the external display only the built-in macOS screensavers are
+listed; Tally Matrix appears only on the internal display. Moving System Settings onto the
+external display — the fix on 2026-08-30 above — no longer brings it up there.
+
+**His read: a macOS 27 point-update bug.** He has run macOS 27 on this MacBook throughout;
+it worked on the external display on 2026-08-30 and stopped after a later 27.x update
+(27.0.1 was installed by 2026-09-30). **Suspected, not confirmed** — no cause has been found
+in this bundle, and nothing in it is display-specific.
+
+## ✅ FIXED in build 5 (`d8659d3`) — changing the color in Options did not take effect
+
+**Cause, measured 2026-10-01:** `ScreenSaverDefaults` never wrote anything to disk. The
+Options sheet kept the choice in memory, so the System Settings preview showed blue while
+the real saver read its default (rainbow). Settings now live in
+`~/Library/Containers/com.apple.ScreenSaver.Engine.legacyScreenSaver/Data/Library/Application Support/com.nightgard.TallyMatrixScreensaver/settings.plist`,
+saved on every change and read fresh on every start. **Confirmed by Michael:** *"works"* —
+the preview follows Options, and the file read back Blue Phosphor (Glow), 08:15.
+
+The original report is kept below.
+
+### (original) Known issue — changing the color in Options does not take effect
 
 **Michael, 2026-08-30 21:53:** *"The color isnt changing on the screensaver."*
 **Reported, not yet diagnosed. Do not assume the cause below is right.**

@@ -18,14 +18,67 @@
 //
 
 import Foundation
-import ScreenSaver
+import os
 
 enum SaverSettings {
 
     static let bundleID = "com.nightgard.TallyMatrixScreensaver"
 
-    private static var defaults: ScreenSaverDefaults {
-        ScreenSaverDefaults(forModuleWithName: bundleID) ?? .init()
+    // ⛔ ScreenSaverDefaults WAS NEVER WRITING. Measured 2026-10-01: after Michael chose
+    // "blue phosphor" and pressed Done, no Tally Matrix preference file existed anywhere
+    // in ~/Library/Preferences, any container or any group container — every folder was
+    // readable, so the null result is real. The Options sheet only LOOKED saved because
+    // it is a singleton and kept the choice in memory; the running saver read its default
+    // (rainbow) every time.
+    //
+    // So the settings now live in an explicit plist whose path is logged on every read
+    // and write. Inside the sandbox, Application Support resolves to the host's
+    // container, so the file can be found and read back rather than trusted.
+    // Watch it live:  log stream --predicate 'subsystem == "com.nightgard.TallyMatrixScreensaver"'
+
+    static let didChange = Notification.Name("TallyMatrixSettingsDidChange")
+
+    private static let log = Logger(subsystem: bundleID, category: "settings")
+
+    static var fileURL: URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory,
+                                            in: .userDomainMask)[0]
+        return base.appendingPathComponent(bundleID, isDirectory: true)
+                   .appendingPathComponent("settings.plist")
+    }
+
+    /// Read fresh from disk every time — never cached, so a new value is seen the next
+    /// time anything asks.
+    private static func load() -> [String: Any] {
+        let url = fileURL
+        guard let data = try? Data(contentsOf: url) else {
+            log.info("no settings file yet at \(url.path, privacy: .public)")
+            return [:]
+        }
+        do {
+            let obj = try PropertyListSerialization.propertyList(from: data, format: nil)
+            return obj as? [String: Any] ?? [:]
+        } catch {
+            log.error("unreadable settings at \(url.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return [:]
+        }
+    }
+
+    private static func save(_ key: String, _ value: Any) {
+        var dict = load()
+        dict[key] = value
+        let url = fileURL
+        do {
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+            let data = try PropertyListSerialization.data(fromPropertyList: dict,
+                                                          format: .xml, options: 0)
+            try data.write(to: url, options: .atomic)
+            log.info("saved \(key, privacy: .public)=\(String(describing: value), privacy: .public) to \(url.path, privacy: .public)")
+        } catch {
+            log.error("FAILED to save \(key, privacy: .public) to \(url.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        }
+        NotificationCenter.default.post(name: didChange, object: nil)
     }
 
     // MARK: - The system's own 12/24-hour answer
@@ -55,8 +108,8 @@ enum SaverSettings {
 
     /// "system" follows Language & Region and is the default.
     static var hourMode: String {
-        get { defaults.string(forKey: Key.hourMode) ?? "system" }
-        set { defaults.set(newValue, forKey: Key.hourMode); defaults.synchronize() }
+        get { load()[Key.hourMode] as? String ?? "system" }
+        set { save(Key.hourMode, newValue) }
     }
 
     /// The resolved answer the clock actually uses.
@@ -70,29 +123,29 @@ enum SaverSettings {
 
     static var colorScheme: ColorSchemeOption {
         get {
-            guard let raw = defaults.string(forKey: Key.colorScheme),
+            guard let raw = load()[Key.colorScheme] as? String,
                   let v = ColorSchemeOption(rawValue: raw) else { return .matrixColors }
             return v
         }
-        set { defaults.set(newValue.rawValue, forKey: Key.colorScheme); defaults.synchronize() }
+        set { save(Key.colorScheme, newValue.rawValue) }
     }
 
     static var rainSize: GlyphRainSize {
         get {
-            guard let raw = defaults.string(forKey: Key.rainSize),
+            guard let raw = load()[Key.rainSize] as? String,
                   let v = GlyphRainSize(rawValue: raw) else { return .medium }
             return v
         }
-        set { defaults.set(newValue.rawValue, forKey: Key.rainSize); defaults.synchronize() }
+        set { save(Key.rainSize, newValue.rawValue) }
     }
 
     static var showRain: Bool {
-        get { defaults.object(forKey: Key.showRain) as? Bool ?? true }
-        set { defaults.set(newValue, forKey: Key.showRain); defaults.synchronize() }
+        get { load()[Key.showRain] as? Bool ?? true }
+        set { save(Key.showRain, newValue) }
     }
 
     static var glow: Bool {
-        get { defaults.object(forKey: Key.glow) as? Bool ?? true }
-        set { defaults.set(newValue, forKey: Key.glow); defaults.synchronize() }
+        get { load()[Key.glow] as? Bool ?? true }
+        set { save(Key.glow, newValue) }
     }
 }

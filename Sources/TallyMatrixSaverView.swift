@@ -30,11 +30,32 @@ final class TallyMatrixSaverView: ScreenSaverView {
         // rather than at 30fps, so it is not burning a wake-up every frame for nothing.
         animationTimeInterval = 1.0
 
+        buildFace()
+
+        // The preview in System Settings shares a process with the Options sheet, so a
+        // change there reaches it at once instead of after the next start.
+        NotificationCenter.default.addObserver(forName: SaverSettings.didChange, object: nil,
+                                               queue: .main) { [weak self] _ in
+            self?.buildFace()
+        }
+    }
+
+    /// ClockFaceView reads its settings when it is constructed, so a NEW one is built
+    /// every time the saver starts. ⛔ macOS keeps legacyScreenSaver — and this view —
+    /// alive between activations; building the face only in init is why a changed
+    /// color never appeared (2026-10-01).
+    private func buildFace() {
+        hosting?.removeFromSuperview()
         let view = NSHostingView(rootView: ClockFaceView(isPreview: isPreview))
         view.frame = bounds
         view.autoresizingMask = [.width, .height]
         addSubview(view)
         hosting = view
+    }
+
+    override func startAnimation() {
+        super.startAnimation()
+        buildFace()
     }
 
     @available(*, unavailable)

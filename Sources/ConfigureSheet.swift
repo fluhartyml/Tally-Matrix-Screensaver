@@ -71,10 +71,22 @@ private struct OptionsView: View {
                 }
             }
             .formStyle(.grouped)
+            // Saved the moment a choice changes, not only on Done — a sheet closed any
+            // other way must not silently drop what was picked.
+            .onChange(of: hourMode) { _, v in SaverSettings.hourMode = v }
+            .onChange(of: colorScheme) { _, v in SaverSettings.colorScheme = v }
+            .onChange(of: rainSize) { _, v in SaverSettings.rainSize = v }
+            .onChange(of: showRain) { _, v in SaverSettings.showRain = v }
+            .onChange(of: glow) { _, v in SaverSettings.glow = v }
 
             Divider()
 
             HStack {
+                // Readable out loud, so two installs can be told apart at a glance.
+                Text(buildLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
                 Spacer()
                 Button("Done") {
                     SaverSettings.hourMode = hourMode
@@ -89,6 +101,15 @@ private struct OptionsView: View {
             .padding(12)
         }
         .frame(width: 420, height: 330)
+    }
+
+    /// Stamped into Info.plist by build.sh from git — never typed by hand.
+    private var buildLabel: String {
+        let info = Bundle(for: TallyMatrixSaverView.self).infoDictionary ?? [:]
+        let build = info["CFBundleVersion"] as? String ?? "?"
+        let commit = info["TMBuildCommit"] as? String ?? "?"
+        let time = info["TMBuildTime"] as? String ?? "?"
+        return "Build \(build) · \(commit) · \(time)"
     }
 
     /// Says what "Follow the Mac" currently resolves to, so the choice is not a mystery.

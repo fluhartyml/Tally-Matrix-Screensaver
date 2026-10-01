@@ -36,6 +36,20 @@ xcrun clang -bundle \
 
 cp Info.plist "$BUNDLE/Contents/Info.plist"
 
+# ⛔ EVERY BUILD CARRIES ITS COMMIT NUMBER (Michael's rule, 2026-09-04). This project has
+# no Xcode file for the hook kit to stamp, so the stamp happens HERE, on every build —
+# machinery, not memory. Uncommitted code is marked "-dirty" so a build can never wear
+# a commit's number while running something else.
+BUILD_NUMBER=$(git rev-list --count HEAD)
+COMMIT=$(git rev-parse --short HEAD)
+[ -n "$(git status --porcelain -- Sources Info.plist build.sh)" ] && COMMIT="$COMMIT-dirty"
+STAMP=$(date "+%Y-%m-%d %H:%M")
+PL="$BUNDLE/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$PL"
+/usr/libexec/PlistBuddy -c "Add :TMBuildCommit string $COMMIT" "$PL"
+/usr/libexec/PlistBuddy -c "Add :TMBuildTime string $STAMP" "$PL"
+echo "==> stamped: build $BUILD_NUMBER · $COMMIT · $STAMP"
+
 echo "==> signing (ad-hoc; enough to run locally)"
 codesign --force --deep --sign - "$BUNDLE"
 

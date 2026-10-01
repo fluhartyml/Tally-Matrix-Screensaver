@@ -42,8 +42,10 @@ struct ClockFaceView: View {
     @State private var patterns: [Int: Set<Int>] = [:]
     @State private var colors: [Int: [Color]] = [:]
 
-    /// Read once, at construction. The saver is rebuilt when Options is dismissed,
-    /// so there is nothing to observe at runtime.
+    /// Read once, at construction. TallyMatrixSaverView builds a NEW ClockFaceView on
+    /// every startAnimation() and on every settings change — that, not this view, is
+    /// what makes a new choice take effect. (The old comment here claimed the saver was
+    /// rebuilt when Options closed; it was never checked and was not true.)
     private let colorScheme = SaverSettings.colorScheme
     private let rainSize = SaverSettings.rainSize
     private let showRain = SaverSettings.showRain
@@ -110,7 +112,7 @@ struct ClockFaceView: View {
     private var minutesTens: Int { Calendar.current.component(.minute, from: now) / 10 }
     private var minutesOnes: Int { Calendar.current.component(.minute, from: now) % 10 }
 
-    // MARK: - Pattern and colour generation  (lifted from the app's ContentView)
+    // MARK: - Pattern and color generation  (lifted from the app's ContentView)
 
     private func updatePatterns() {
         patterns[0] = randomPattern(for: hoursTens, totalSquares: 3)
